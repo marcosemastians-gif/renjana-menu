@@ -18,9 +18,12 @@
         .customer-info input:focus { outline: none; border-color: #667eea; }
         .category { margin-bottom: 30px; }
         .category-header { font-size: 1.5em; color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #667eea; }
-        .menu-item { background: #f8f9fa; padding: 15px; margin-bottom: 12px; border-radius: 12px; transition: all 0.3s; border: 2px solid transparent; }
+        .menu-item { background: #f8f9fa; padding: 15px; margin-bottom: 12px; border-radius: 12px; transition: all 0.3s; border: 2px solid transparent; position: relative; }
         .menu-item:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .menu-item.selected { border-color: #667eea; background: #e8eaf6; }
+        .menu-item.unavailable { opacity: 0.5; }
+        .unavailable-badge { position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
+        .unavailable .qty-btn, .unavailable .size-btn { cursor: not-allowed !important; opacity: 0.5; }
         .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .item-info { flex: 1; }
         .item-name { font-weight: 600; color: #333; font-size: 1.1em; margin-bottom: 5px; }
@@ -29,10 +32,12 @@
         .qty-btn { width: 35px; height: 35px; border: none; background: #667eea; color: white; border-radius: 50%; font-size: 1.2em; cursor: pointer; transition: all 0.3s; }
         .qty-btn:hover { background: #5568d3; transform: scale(1.1); }
         .qty-btn:active { transform: scale(0.95); }
+        .qty-btn:disabled { background: #ccc; cursor: not-allowed; }
         .qty-display { min-width: 40px; text-align: center; font-weight: 700; font-size: 1.2em; color: #333; }
         .size-options { display: flex; gap: 10px; }
         .size-btn { flex: 1; padding: 8px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
         .size-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .size-btn:disabled { background: #f0f0f0; cursor: not-allowed; }
         .summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; margin: 20px 0; display: none; }
         .summary.show { display: block; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1em; }
@@ -53,6 +58,17 @@
         .confirm-btn:hover { background: #218838; }
         .cancel-btn { background: #dc3545; color: white; }
         .cancel-btn:hover { background: #c82333; }
+        .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .popup-overlay.active { display: flex; }
+        .popup-content { background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; }
+        .popup-header { font-size: 1.8em; color: #333; margin-bottom: 20px; text-align: center; font-weight: 700; }
+        .popup-section { margin-bottom: 20px; }
+        .popup-section-title { font-size: 1.2em; font-weight: 700; margin-bottom: 10px; padding: 10px; border-radius: 8px; }
+        .available-section { background: #d4edda; color: #155724; }
+        .unavailable-section { background: #f8d7da; color: #721c24; }
+        .popup-item { padding: 8px 12px; margin: 5px 0; background: #f8f9fa; border-radius: 8px; font-size: 0.95em; }
+        .popup-close-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1.2em; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .popup-close-btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -327,6 +343,20 @@
             </div>
         </div>
     </div>
+    <div class="popup-overlay" id="menuPopup">
+        <div class="popup-content">
+            <div class="popup-header">🍹 Menu Hari Ini</div>
+            <div class="popup-section">
+                <div class="popup-section-title available-section">✅ Menu Tersedia</div>
+                <div id="availableList"></div>
+            </div>
+            <div class="popup-section">
+                <div class="popup-section-title unavailable-section">❌ Menu Belum Tersedia</div>
+                <div id="unavailableList"></div>
+            </div>
+            <button class="popup-close-btn" onclick="closePopup()">Mulai Pesan</button>
+        </div>
+    </div>
     <script>
         var menu=[
             {n:"Renjana Aren Latte",p:8000,a:0},
@@ -349,53 +379,50 @@
         for(var i=0;i<menu.length;i++)ord.push({q:0,z:'reguler'});
         
         window.onload=function(){
-            showAvailabilityPopup();
-            applyAvailability();
+            initMenuAvailability();
+            showPopup();
         };
         
-        function showAvailabilityPopup(){
-            var av=[];
+        function initMenuAvailability(){
             for(var i=0;i<menu.length;i++){
-                if(menu[i].a===1)av.push(menu[i].n);
-            }
-            if(av.length>0){
-                var msg='📢 Menu yang tersedia hari ini:\n\n';
-                for(var i=0;i<av.length;i++){
-                    msg+='✅ '+av[i]+'\n';
+                if(!menu[i].a){
+                    var it=document.getElementById('item-'+i);
+                    it.classList.add('unavailable');
+                    var badge=document.createElement('div');
+                    badge.className='unavailable-badge';
+                    badge.textContent='❌ Menu belum tersedia';
+                    it.insertBefore(badge,it.firstChild);
+                    var btns=it.querySelectorAll('.qty-btn, .size-btn');
+                    for(var j=0;j<btns.length;j++){
+                        btns[j].disabled=true;
+                        btns[j].style.pointerEvents='none';
+                    }
                 }
-                msg+='\nMenu lainnya sedang tidak tersedia 🙏';
-                alert(msg);
             }
         }
         
-        function applyAvailability(){
+        function showPopup(){
+            var av=[],unav=[];
             for(var i=0;i<menu.length;i++){
-                if(menu[i].a===0){
-                    var item=document.getElementById('item-'+i);
-                    item.style.opacity='0.5';
-                    item.style.pointerEvents='none';
-                    var btns=item.querySelectorAll('.qty-btn');
-                    for(var j=0;j<btns.length;j++){
-                        btns[j].disabled=true;
-                        btns[j].style.background='#ccc';
-                        btns[j].style.cursor='not-allowed';
-                    }
-                    var sizeBtns=item.querySelectorAll('.size-btn');
-                    for(var k=0;k<sizeBtns.length;k++){
-                        sizeBtns[k].disabled=true;
-                        sizeBtns[k].style.cursor='not-allowed';
-                    }
-                    var info=item.querySelector('.item-info');
-                    var badge=document.createElement('div');
-                    badge.style.cssText='color:#dc3545;font-size:0.85em;font-weight:600;margin-top:5px;';
-                    badge.textContent='❌ Menu belum tersedia';
-                    info.appendChild(badge);
-                }
+                var sz=menu[i].s?' (Reguler/Big)':'';
+                if(menu[i].a)av.push(menu[i].n+sz);
+                else unav.push(menu[i].n+sz);
             }
+            var avList='';
+            for(var i=0;i<av.length;i++)avList+='<div class="popup-item">✅ '+av[i]+'</div>';
+            document.getElementById('availableList').innerHTML=avList;
+            var unavList='';
+            for(var i=0;i<unav.length;i++)unavList+='<div class="popup-item">❌ '+unav[i]+'</div>';
+            document.getElementById('unavailableList').innerHTML=unavList;
+            document.getElementById('menuPopup').classList.add('active');
         }
-        var ord=[];
-        for(var i=0;i<menu.length;i++)ord.push({q:0,z:'reguler'});
+        
+        function closePopup(){
+            document.getElementById('menuPopup').classList.remove('active');
+        }
+        
         function changeQty(i,c){
+            if(!menu[i].a)return;
             var nq=ord[i].q+c;
             if(nq<0)nq=0;
             ord[i].q=nq;
@@ -406,6 +433,7 @@
             updateSummary();
         }
         function changeSize(i,z,el){
+            if(!menu[i].a)return;
             ord[i].z=z;
             var p=el.parentNode;
             var bs=p.querySelectorAll('.size-btn');
