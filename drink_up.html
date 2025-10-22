@@ -329,22 +329,70 @@
     </div>
     <script>
         var menu=[
-            {n:"Renjana Aren Latte",p:8000},
-            {n:"Renjana Hazelnut Coffee",p:10000},
-            {n:"Renjana Americano",p:6000},
-            {n:"Renjana Cappuccino",p:8000},
-            {n:"Stickymilk Matcha",r:8000,b:10000,s:1},
-            {n:"Stickymilk Coklat",r:8000,b:10000,s:1},
-            {n:"Stickymilk Taro",r:8000,b:10000,s:1},
-            {n:"Stickymilk Hazelnut",r:8000,b:10000,s:1},
-            {n:"Stickymilk Permen Karet",r:8000,b:10000,s:1},
-            {n:"Stickymilk Strawberry",r:8000,b:10000,s:1},
-            {n:"Stickymilk Red Velvet",r:8000,b:10000,s:1},
-            {n:"Es Teh Renjana",p:3000},
-            {n:"Thai Tea Renjana",p:8000},
-            {n:"Teh Tarik Renjana",p:8000},
-            {n:"Teh Milk Renjana",p:8000}
+            {n:"Renjana Aren Latte",p:8000,a:0},
+            {n:"Renjana Hazelnut Coffee",p:10000,a:0},
+            {n:"Renjana Americano",p:6000,a:0},
+            {n:"Renjana Cappuccino",p:8000,a:0},
+            {n:"Stickymilk Matcha",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Coklat",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Taro",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Hazelnut",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Permen Karet",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Strawberry",r:8000,b:10000,s:1,a:1},
+            {n:"Stickymilk Red Velvet",r:8000,b:10000,s:1,a:1},
+            {n:"Es Teh Renjana",p:3000,a:1},
+            {n:"Thai Tea Renjana",p:8000,a:0},
+            {n:"Teh Tarik Renjana",p:8000,a:0},
+            {n:"Teh Milk Renjana",p:8000,a:0}
         ];
+        var ord=[];
+        for(var i=0;i<menu.length;i++)ord.push({q:0,z:'reguler'});
+        
+        window.onload=function(){
+            showAvailabilityPopup();
+            applyAvailability();
+        };
+        
+        function showAvailabilityPopup(){
+            var av=[];
+            for(var i=0;i<menu.length;i++){
+                if(menu[i].a===1)av.push(menu[i].n);
+            }
+            if(av.length>0){
+                var msg='📢 Menu yang tersedia hari ini:\n\n';
+                for(var i=0;i<av.length;i++){
+                    msg+='✅ '+av[i]+'\n';
+                }
+                msg+='\nMenu lainnya sedang tidak tersedia 🙏';
+                alert(msg);
+            }
+        }
+        
+        function applyAvailability(){
+            for(var i=0;i<menu.length;i++){
+                if(menu[i].a===0){
+                    var item=document.getElementById('item-'+i);
+                    item.style.opacity='0.5';
+                    item.style.pointerEvents='none';
+                    var btns=item.querySelectorAll('.qty-btn');
+                    for(var j=0;j<btns.length;j++){
+                        btns[j].disabled=true;
+                        btns[j].style.background='#ccc';
+                        btns[j].style.cursor='not-allowed';
+                    }
+                    var sizeBtns=item.querySelectorAll('.size-btn');
+                    for(var k=0;k<sizeBtns.length;k++){
+                        sizeBtns[k].disabled=true;
+                        sizeBtns[k].style.cursor='not-allowed';
+                    }
+                    var info=item.querySelector('.item-info');
+                    var badge=document.createElement('div');
+                    badge.style.cssText='color:#dc3545;font-size:0.85em;font-weight:600;margin-top:5px;';
+                    badge.textContent='❌ Menu belum tersedia';
+                    info.appendChild(badge);
+                }
+            }
+        }
         var ord=[];
         for(var i=0;i<menu.length;i++)ord.push({q:0,z:'reguler'});
         function changeQty(i,c){
